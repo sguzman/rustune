@@ -27,6 +27,12 @@ pub struct MatchRecord {
     pub text: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileSelectionMode {
+    ProbabilityPercent,
+    CandidateCount,
+}
+
 #[instrument(skip_all)]
 pub fn load_sources(
     discovered: &[WeightedSource],
@@ -104,29 +110,71 @@ pub fn select_random_fortune(
     entries: &[LoadedSource],
     probabilities: &[f64],
     rng: &mut FortuneRng,
+    mode: FileSelectionMode,
 ) -> Result<FortuneSelection> {
     if entries.len() != probabilities.len() {
         bail!("entries/probabilities length mismatch");
     }
 
-    let total: f64 = probabilities.iter().sum();
-    if total <= 0.0 {
-        bail!("total probability is zero");
-    }
+    let chosen_idx = match mode {
+        FileSelectionMode::ProbabilityPercent => {
+            let total: f64 = probabilities.iter().sum();
+            if total <= 0.0 {
+                bail!("total probability is zero");
+            }
 
-    let mut marker = rng.next_unit_f64() * total;
-    let mut chosen_idx = entries.len() - 1;
-    for (idx, probability) in probabilities.iter().enumerate() {
-        if marker < *probability {
-            chosen_idx = idx;
-            break;
+            let mut marker = rng.next_index(100) as f64;
+            let mut picked = entries.len() - 1;
+            for (idx, probability) in probabilities.iter().enumerate() {
+                if marker < *probability {
+                    picked = idx;
+                    break;
+                }
+                marker -= *probability;
+            }
+            picked
         }
-        marker -= *probability;
-    }
+        FileSelectionMode::CandidateCount => {
+            let total_candidates: usize = entries
+                .iter()
+                .map(|entry| entry.candidate_indices.len())
+                .sum();
+            if total_candidates == 0 {
+                bail!("no candidate fortunes available");
+            }
+            let mut marker = rng.next_index(total_candidates);
+            let mut picked = entries.len() - 1;
+            for (idx, entry) in entries.iter().enumerate() {
+                if marker < entry.candidate_indices.len() {
+                    picked = idx;
+                    break;
+                }
+                marker -= entry.candidate_indices.len();
+            }
+            picked
+        }
+    };
 
     let chosen = &entries[chosen_idx];
-    let record_pos = rng.next_index(chosen.candidate_indices.len());
-    let record_index = chosen.candidate_indices[record_pos];
+    let total_records = chosen.db.record_count();
+    if total_records == 0 {
+        bail!("selected source has no records");
+    }
+    // Mirror upstream get_pos() behavior: first pick is incremented before use.
+    let mut record_index = (rng.next_index(total_records) + 1) % total_records;
+    if chosen.candidate_indices.len() != total_records {
+        let mut attempts = 0usize;
+        while !chosen.candidate_indices.contains(&record_index) {
+            record_index = (record_index + 1) % total_records;
+            attempts += 1;
+            if attempts >= total_records {
+                bail!(
+                    "selected source '{}' has no records matching filters",
+                    chosen.db.text_path.display()
+                );
+            }
+        }
+    }
     let text = chosen.db.record_text_lossy(record_index)?;
     debug!(
         source = %chosen.db.text_path.display(),

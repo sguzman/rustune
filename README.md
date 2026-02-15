@@ -82,6 +82,8 @@ The harness reports:
 - per-category scoring
 - top regression diffs
 
+Current local baseline (February 15, 2026): `7/7` cases passed, weighted parity `100.00%`.
+
 ## Test Suite
 
 ```bash

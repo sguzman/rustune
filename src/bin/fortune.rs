@@ -1,5 +1,7 @@
 use std::collections::BTreeSet;
+use std::fs;
 use std::io::{self, Write};
+use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::Duration;
 
@@ -11,11 +13,12 @@ use tracing::{debug, info, instrument, warn};
 use rustune::datfile::LengthFilter;
 use rustune::discovery::{DiscoveryConfig, discover_weighted_sources};
 use rustune::fortune_engine::{
-    calculate_probabilities, collect_matches, load_sources, select_random_fortune,
+    FileSelectionMode, LoadedSource, calculate_probabilities, collect_matches, load_sources,
+    select_random_fortune,
 };
 use rustune::logging::init_logging;
 use rustune::rng::FortuneRng;
-use rustune::sources::parse_source_specs;
+use rustune::sources::{SourceSpec, parse_source_specs};
 
 const MIN_WAIT_SECONDS: usize = 6;
 const CHARS_PER_SECOND: usize = 20;
@@ -89,7 +92,7 @@ fn run(args: Args) -> Result<()> {
     let probabilities = calculate_probabilities(&loaded, args.equal_probability)?;
 
     if args.list_files {
-        print_probabilities(&loaded, &probabilities);
+        print_probabilities(&source_specs, &loaded, &probabilities)?;
         return Ok(());
     }
 
@@ -114,10 +117,20 @@ fn run(args: Args) -> Result<()> {
     }
 
     let mut rng = FortuneRng::from_env()?;
-    let selection = select_random_fortune(&loaded, &probabilities, &mut rng)?;
+    let selection_mode =
+        if args.equal_probability || loaded.iter().any(|entry| entry.explicit_percent.is_some()) {
+            FileSelectionMode::ProbabilityPercent
+        } else {
+            FileSelectionMode::CandidateCount
+        };
+    let selection = select_random_fortune(&loaded, &probabilities, &mut rng, selection_mode)?;
 
     if args.show_source {
-        println!("({})", selection.source_path.display());
+        println!(
+            "({})",
+            absolute_display_path(&selection.source_path).display()
+        );
+        println!("%");
     }
     print_record(&selection.text)?;
     info!(
@@ -147,10 +160,40 @@ fn compute_length_filter(short_only: bool, long_only: bool, threshold: usize) ->
     }
 }
 
-fn print_probabilities(loaded: &[rustune::fortune_engine::LoadedSource], probabilities: &[f64]) {
-    for (entry, probability) in loaded.iter().zip(probabilities.iter()) {
-        println!("{:>7.3}% {}", probability, entry.db.text_path.display());
+fn print_probabilities(
+    source_specs: &[SourceSpec],
+    loaded: &[LoadedSource],
+    probabilities: &[f64],
+) -> Result<()> {
+    let mut err = io::stderr().lock();
+
+    if source_specs.len() == 1 && source_specs[0].path.is_dir() {
+        let total: f64 = probabilities.iter().sum();
+        let top = absolute_display_path(&source_specs[0].path);
+        writeln!(err, "{:.2}% {}", total, top.display())?;
+
+        for (entry, probability) in loaded.iter().zip(probabilities.iter()) {
+            let rel = if total > 0.0 {
+                (probability / total) * 100.0
+            } else {
+                0.0
+            };
+            let label = entry
+                .db
+                .text_path
+                .file_name()
+                .map(|s| s.to_string_lossy().into_owned())
+                .unwrap_or_else(|| entry.db.text_path.display().to_string());
+            writeln!(err, "    {:.2}% {}", rel, label)?;
+        }
+        return Ok(());
     }
+
+    for (entry, probability) in loaded.iter().zip(probabilities.iter()) {
+        let abs = absolute_display_path(&entry.db.text_path);
+        writeln!(err, "{:.2}% {}", probability, abs.display())?;
+    }
+    Ok(())
 }
 
 fn print_record(text: &str) -> Result<()> {
@@ -166,4 +209,16 @@ fn wait_seconds_for_text(text: &str) -> usize {
     let chars = text.chars().count();
     let cps = chars.div_ceil(CHARS_PER_SECOND);
     cps.max(MIN_WAIT_SECONDS)
+}
+
+fn absolute_display_path(path: &Path) -> PathBuf {
+    fs::canonicalize(path).unwrap_or_else(|_| {
+        if path.is_absolute() {
+            path.to_path_buf()
+        } else {
+            std::env::current_dir()
+                .map(|cwd| cwd.join(path))
+                .unwrap_or_else(|_| path.to_path_buf())
+        }
+    })
 }

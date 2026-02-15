@@ -8,7 +8,7 @@ use tracing::{debug, instrument, trace};
 
 #[derive(Debug)]
 enum Mode {
-    HardCoded { values: Vec<u64>, index: usize },
+    HardCoded(u64),
     Seeded(StdRng),
     Thread,
 }
@@ -22,13 +22,11 @@ impl FortuneRng {
     #[instrument]
     pub fn from_env() -> Result<Self> {
         if let Ok(raw) = env::var("FORTUNE_MOD_RAND_HARD_CODED_VALS") {
-            let values = parse_hardcoded_values(&raw)?;
-            if !values.is_empty() {
-                debug!(values = values.len(), "using hard coded RNG sequence");
-                return Ok(Self {
-                    mode: Mode::HardCoded { values, index: 0 },
-                });
-            }
+            let value = parse_hardcoded_value(&raw)?;
+            debug!(value, "using hard coded RNG value");
+            return Ok(Self {
+                mode: Mode::HardCoded(value),
+            });
         }
 
         if env_truthy("FORTUNE_MOD_USE_SRAND") {
@@ -49,11 +47,9 @@ impl FortuneRng {
 
     pub fn next_u64(&mut self) -> u64 {
         match &mut self.mode {
-            Mode::HardCoded { values, index } => {
-                let value = values[*index % values.len()];
-                *index += 1;
-                trace!(value, pos = *index, "hard-coded RNG yielded value");
-                value
+            Mode::HardCoded(value) => {
+                trace!(value, "hard-coded RNG yielded value");
+                *value
             }
             Mode::Seeded(rng) => rng.random::<u64>(),
             Mode::Thread => rand::random::<u64>(),
@@ -73,21 +69,23 @@ impl FortuneRng {
     }
 }
 
-fn parse_hardcoded_values(raw: &str) -> Result<Vec<u64>> {
-    let mut out = Vec::new();
-    for token in raw
+fn parse_hardcoded_value(raw: &str) -> Result<u64> {
+    let token = raw
         .split(|c: char| c == ',' || c == ';' || c.is_ascii_whitespace())
         .filter(|x| !x.is_empty())
-    {
-        let parsed = token
-            .parse::<u64>()
-            .map_err(|_| anyhow::anyhow!("invalid hardcoded RNG value '{token}'"))?;
-        out.push(parsed);
+        .next()
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "FORTUNE_MOD_RAND_HARD_CODED_VALS is set but contains no numeric values"
+            )
+        })?;
+    let parsed = token
+        .parse::<u64>()
+        .map_err(|_| anyhow::anyhow!("invalid hardcoded RNG value '{token}'"))?;
+    if raw.contains(',') || raw.contains(';') {
+        bail!("FORTUNE_MOD_RAND_HARD_CODED_VALS accepts a single numeric value");
     }
-    if out.is_empty() {
-        bail!("FORTUNE_MOD_RAND_HARD_CODED_VALS is set but contains no numeric values");
-    }
-    Ok(out)
+    Ok(parsed)
 }
 
 fn env_truthy(name: &str) -> bool {
