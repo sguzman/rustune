@@ -2,6 +2,7 @@
 name = "rustune"
 version = "0.1.0"
 edition = "2024"
+autobins = false
 
 [dependencies]
 anyhow = "1.0.101"
@@ -17,3 +18,15 @@ walkdir = "2.5.0"
 [dev-dependencies]
 proptest = "1.10.0"
 tempfile = "3.25.0"
+
+[[bin]]
+name = "rustune"
+path = "src/main.rs"
+
+[[bin]]
+name = "strfile"
+path = "src/bin/strfile.rs"
+
+[[bin]]
+name = "fortune-parity"
+path = "src/bin/fortune-parity.rs"

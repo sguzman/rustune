@@ -9,7 +9,7 @@
 
 ## Binaries
 
-- `fortune`: selects and prints fortunes
+- `rustune`: selects and prints fortunes
 - `strfile`: generates `*.dat` indexes
 - `fortune-parity`: compares this port against a system `fortune` oracle
 
@@ -24,7 +24,7 @@ cargo build
 All binaries use `tracing` and honor `RUST_LOG`.
 
 ```bash
-RUST_LOG=rustune=trace,fortune=debug cargo run --bin fortune -- tests/corpus/alpha
+RUST_LOG=rustune=trace cargo run --bin rustune -- --verbose tests/corpus/alpha
 ```
 
 ## Usage
@@ -39,19 +39,19 @@ cargo run --bin strfile -- tests/corpus/beta
 ### Print a fortune
 
 ```bash
-cargo run --bin fortune -- tests/corpus/alpha tests/corpus/beta
+cargo run --bin rustune -- tests/corpus/alpha tests/corpus/beta
 ```
 
 ### List files and computed probabilities
 
 ```bash
-cargo run --bin fortune -- -f tests/corpus
+cargo run --bin rustune -- -f tests/corpus
 ```
 
 ### Regex mode
 
 ```bash
-cargo run --bin fortune -- -m Rust tests/corpus/alpha
+cargo run --bin rustune -- -m Rust tests/corpus/alpha
 ```
 
 ## Deterministic RNG (parity/test)
@@ -59,7 +59,7 @@ cargo run --bin fortune -- -m Rust tests/corpus/alpha
 The port supports the upstream-style deterministic hook:
 
 ```bash
-FORTUNE_MOD_RAND_HARD_CODED_VALS=0 cargo run --bin fortune -- tests/corpus/alpha
+FORTUNE_MOD_RAND_HARD_CODED_VALS=0 cargo run --bin rustune -- tests/corpus/alpha
 ```
 
 `FORTUNE_MOD_USE_SRAND=1` is also supported to force seeded RNG behavior.
@@ -70,7 +70,7 @@ Run oracle comparisons (requires a system `fortune`, default `/usr/bin/fortune`)
 
 ```bash
 cargo run --bin fortune-parity -- \
-  --subject target/debug/fortune \
+  --subject target/debug/rustune \
   --strfile target/debug/strfile \
   --json-out tmp/parity-report.json
 ```

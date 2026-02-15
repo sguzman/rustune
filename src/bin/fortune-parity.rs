@@ -110,8 +110,8 @@ fn resolve_subject_path(subject: Option<PathBuf>) -> Result<PathBuf> {
     let current_exe = std::env::current_exe()?;
     let sibling = current_exe
         .parent()
-        .map(|p| p.join("fortune"))
-        .ok_or_else(|| anyhow::anyhow!("cannot derive subject fortune path"))?;
+        .map(|p| p.join("rustune"))
+        .ok_or_else(|| anyhow::anyhow!("cannot derive subject rustune path"))?;
     Ok(sibling)
 }
 

@@ -26,7 +26,7 @@ fn list_files_writes_formatted_probabilities_to_stderr() {
         b"Small binaries, sharp tools.\n%\nParity first, modern internals.\n",
     );
 
-    let output = Command::new(env!("CARGO_BIN_EXE_fortune"))
+    let output = Command::new(env!("CARGO_BIN_EXE_rustune"))
         .arg("-f")
         .arg(&alpha)
         .arg(&beta)
@@ -60,7 +60,7 @@ fn deterministic_seed_matches_expected_selection() {
         b"Small binaries, sharp tools.\n%\nParity first, modern internals.\n",
     );
 
-    let out0 = Command::new(env!("CARGO_BIN_EXE_fortune"))
+    let out0 = Command::new(env!("CARGO_BIN_EXE_rustune"))
         .env("FORTUNE_MOD_RAND_HARD_CODED_VALS", "0")
         .arg(&alpha)
         .arg(&beta)
@@ -72,7 +72,7 @@ fn deterministic_seed_matches_expected_selection() {
         "Parsers should be strict.\n"
     );
 
-    let out1 = Command::new(env!("CARGO_BIN_EXE_fortune"))
+    let out1 = Command::new(env!("CARGO_BIN_EXE_rustune"))
         .env("FORTUNE_MOD_RAND_HARD_CODED_VALS", "1")
         .arg("-e")
         .arg(&alpha)
@@ -97,7 +97,7 @@ fn show_source_prints_banner_with_separator() {
         b"Rust keeps moving.\n%\nParsers should be strict.\n%\nLogs are your friend.\n",
     );
 
-    let output = Command::new(env!("CARGO_BIN_EXE_fortune"))
+    let output = Command::new(env!("CARGO_BIN_EXE_rustune"))
         .env("FORTUNE_MOD_RAND_HARD_CODED_VALS", "0")
         .arg("-c")
         .arg(&alpha)
