@@ -105,10 +105,6 @@ impl DatFile {
             offsets.push(be_u32(raw));
         }
 
-        if offsets.windows(2).any(|w| w[0] > w[1]) {
-            bail!(DatValidationError("offset table is not monotonic"));
-        }
-
         let header = DatHeader {
             version,
             numstr,
@@ -203,11 +199,7 @@ impl FortuneFile {
             .get(index)
             .with_context(|| format!("record index {index} out of range"))?
             as usize;
-        let end = if index + 1 < self.dat.offsets.len() {
-            self.dat.offsets[index + 1] as usize
-        } else {
-            self.bytes.len()
-        };
+        let end = self.find_delimiter_start(start).unwrap_or(self.bytes.len());
         if start > end || end > self.bytes.len() {
             bail!(
                 "invalid record span [{start}, {end}) for file size {}",
@@ -262,6 +254,32 @@ impl FortuneFile {
             };
         }
         bound_end
+    }
+
+    fn find_delimiter_start(&self, start: usize) -> Option<usize> {
+        let mut cursor = start;
+        while cursor < self.bytes.len() {
+            let line_end = self.bytes[cursor..]
+                .iter()
+                .position(|b| *b == b'\n')
+                .map(|rel| cursor + rel)
+                .unwrap_or(self.bytes.len());
+            let mut content_end = line_end;
+            if content_end > cursor && self.bytes[content_end - 1] == b'\r' {
+                content_end -= 1;
+            }
+            let is_delim_line =
+                content_end == cursor + 1 && self.bytes[cursor] == self.dat.header.delim;
+            if is_delim_line {
+                return Some(cursor);
+            }
+            cursor = if line_end < self.bytes.len() {
+                line_end + 1
+            } else {
+                line_end
+            };
+        }
+        None
     }
 }
 
