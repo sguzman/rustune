@@ -9,7 +9,7 @@ use tracing::{debug, instrument, trace, warn};
 use crate::datfile::dat_path_for_text;
 use crate::sources::{SourceSpec, WeightedSource};
 
-const DEFAULT_FORTUNE_PATH: &str = "/usr/share/games/fortunes:/usr/local/share/games/fortunes";
+const DEFAULT_FORTUNE_PATH: &str = "/usr/share/fortune:/usr/local/share/fortune:/usr/share/games/fortunes:/usr/local/share/games/fortunes";
 
 #[derive(Debug, Clone)]
 pub struct DiscoveryConfig {
