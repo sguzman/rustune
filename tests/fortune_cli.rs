@@ -106,9 +106,6 @@ fn show_source_prints_banner_with_separator() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout");
     let alpha_abs = fs::canonicalize(&alpha).expect("alpha abs");
-    let expected = format!(
-        "({})\n%\nParsers should be strict.\n",
-        alpha_abs.display()
-    );
+    let expected = format!("({})\n%\nParsers should be strict.\n", alpha_abs.display());
     assert_eq!(stdout, expected);
 }

@@ -13,16 +13,18 @@ use rustune::strfile_builder::{BuildOptions, build_dat_from_text};
 #[command(name = "strfile")]
 #[command(about = "Build fortune-mod .dat index files")]
 struct Args {
-    #[arg(short = 'c', default_value = "%")]
+    #[arg(short = 'c', long = "delimiter", default_value = "%")]
     delimiter: String,
-    #[arg(short = 'r', action = ArgAction::SetTrue)]
+    #[arg(short = 'r', long = "random", action = ArgAction::SetTrue)]
     randomize_offsets: bool,
-    #[arg(short = 'o', action = ArgAction::SetTrue)]
+    #[arg(short = 'o', long = "order", action = ArgAction::SetTrue)]
     order_offsets: bool,
-    #[arg(short = 's', action = ArgAction::SetTrue)]
+    #[arg(short = 's', long = "silent", action = ArgAction::SetTrue)]
     silent: bool,
     #[arg(long = "allow-empty", action = ArgAction::SetTrue)]
     allow_empty: bool,
+    #[arg(long = "verbose", action = ArgAction::SetTrue)]
+    verbose: bool,
     #[arg(value_name = "INPUT")]
     input: PathBuf,
     #[arg(value_name = "OUTPUT")]
@@ -30,8 +32,8 @@ struct Args {
 }
 
 fn main() {
-    init_logging("warn,rustune=info,strfile=info");
     let args = Args::parse();
+    init_logging(args.verbose, "warn,rustune=info,strfile=info");
     if let Err(err) = run(args) {
         eprintln!("strfile: {err:#}");
         std::process::exit(1);

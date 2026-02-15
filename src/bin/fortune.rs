@@ -26,40 +26,43 @@ const CHARS_PER_SECOND: usize = 20;
 #[derive(Debug, Parser)]
 #[command(name = "fortune")]
 #[command(about = "Rust port of fortune-mod")]
+#[command(disable_version_flag = true)]
 struct Args {
-    #[arg(short = 'a', action = ArgAction::SetTrue)]
+    #[arg(short = 'a', long = "all", action = ArgAction::SetTrue)]
     allow_any: bool,
-    #[arg(short = 'o', action = ArgAction::SetTrue)]
+    #[arg(short = 'o', long = "offensive", action = ArgAction::SetTrue)]
     offensive_only: bool,
-    #[arg(short = 'e', action = ArgAction::SetTrue)]
+    #[arg(short = 'e', long = "equal", action = ArgAction::SetTrue)]
     equal_probability: bool,
-    #[arg(short = 'f', action = ArgAction::SetTrue)]
+    #[arg(short = 'f', long = "files", action = ArgAction::SetTrue)]
     list_files: bool,
-    #[arg(short = 'l', action = ArgAction::SetTrue, conflicts_with = "short_only")]
+    #[arg(short = 'l', long = "long", action = ArgAction::SetTrue, conflicts_with = "short_only")]
     long_only: bool,
-    #[arg(short = 's', action = ArgAction::SetTrue, conflicts_with = "long_only")]
+    #[arg(short = 's', long = "short", action = ArgAction::SetTrue, conflicts_with = "long_only")]
     short_only: bool,
-    #[arg(short = 'n', default_value_t = 160)]
+    #[arg(short = 'n', long = "length", default_value_t = 160)]
     length: usize,
-    #[arg(short = 'm')]
+    #[arg(short = 'm', long = "match")]
     pattern: Option<String>,
-    #[arg(short = 'i', action = ArgAction::SetTrue)]
+    #[arg(short = 'i', long = "ignore-case", action = ArgAction::SetTrue)]
     ignore_case: bool,
-    #[arg(short = 'w', action = ArgAction::SetTrue)]
+    #[arg(short = 'w', long = "wait", action = ArgAction::SetTrue)]
     wait: bool,
-    #[arg(short = 'c', action = ArgAction::SetTrue)]
+    #[arg(short = 'c', long = "show-source", action = ArgAction::SetTrue)]
     show_source: bool,
-    #[arg(short = 'u', action = ArgAction::SetTrue)]
+    #[arg(short = 'u', long = "no-recode", action = ArgAction::SetTrue)]
     no_recode: bool,
-    #[arg(short = 'v', action = ArgAction::SetTrue)]
+    #[arg(short = 'v', long = "version", action = ArgAction::SetTrue)]
     version_only: bool,
+    #[arg(long = "verbose", action = ArgAction::SetTrue)]
+    verbose: bool,
     #[arg(value_name = "SOURCE")]
     sources: Vec<String>,
 }
 
 fn main() {
-    init_logging("warn,rustune=info,fortune=info");
     let args = Args::parse();
+    init_logging(args.verbose, "warn,rustune=info,fortune=info");
     if let Err(err) = run(args) {
         eprintln!("fortune: {err:#}");
         std::process::exit(1);

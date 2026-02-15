@@ -24,6 +24,8 @@ struct Args {
     corpus_dir: PathBuf,
     #[arg(long)]
     json_out: Option<PathBuf>,
+    #[arg(long, default_value_t = false)]
+    verbose: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -65,8 +67,8 @@ struct ParityReport {
 }
 
 fn main() {
-    init_logging("warn,rustune=info,fortune_parity=info");
     let args = Args::parse();
+    init_logging(args.verbose, "warn,rustune=info,fortune_parity=info");
     if let Err(err) = run(args) {
         eprintln!("fortune-parity: {err:#}");
         std::process::exit(1);
