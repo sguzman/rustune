@@ -1,112 +1,54 @@
 # rustune
 
-`rustune` is a Rust port of `fortune-mod` focused on behavior parity while modernizing the internals:
+`rustune` is a Rust port of `fortune-mod` focused on behavior parity while modernizing the internals.
 
-- memory-safe STRFILE parsing/writing
-- deterministic RNG hooks for parity testing
-- structured diagnostics with `tracing`
-- an oracle-driven parity harness
+## Intent
 
-## Binaries
+Recreate classic fortune-file workflows with safer parsing, deterministic hooks, and compatibility-oriented tests.
 
-- `rustune`: selects and prints fortunes
-- `strfile`: generates `*.dat` indexes
-- `fortune-parity`: compares this port against a system `fortune` oracle
+## Ambition
 
-## Build
+The multiple binaries and parity harness point toward a faithful but maintainable Rust replacement for the traditional toolchain around `fortune` and `strfile`.
+
+## Current Status
+
+The repo already includes core library modules, companion binaries, tests, and parity-oriented infrastructure. It looks well past the prototype stage.
+
+## Core Capabilities Or Focus Areas
+
+- Read and write STRFILE-related data structures.
+- Provide a `fortune`-style runtime.
+- Support deterministic RNG hooks for parity work.
+- Ship auxiliary binaries for format/index workflows.
+- Use tests and parity tooling to validate behavior.
+
+## Project Layout
+
+- `src/`: Rust source for the main crate or application entrypoint.
+- `tests/`: automated tests, fixtures, or parity scenarios.
+- `Cargo.toml`: crate or workspace manifest and the first place to check for package structure.
+
+## Setup And Requirements
+
+- Rust toolchain.
+- Fortune files or corpora to index and serve.
+- Terminal environment for the CLI binaries.
+
+## Build / Run / Test Commands
 
 ```bash
 cargo build
-```
-
-## Logging
-
-All binaries use `tracing` and honor `RUST_LOG`.
-
-```bash
-RUST_LOG=rustune=trace cargo run --bin rustune -- --verbose tests/corpus/alpha
-```
-
-## Usage
-
-### Generate indexes
-
-```bash
-cargo run --bin strfile -- tests/corpus/alpha
-cargo run --bin strfile -- tests/corpus/beta
-```
-
-### Print a fortune
-
-```bash
-cargo run --bin rustune -- tests/corpus/alpha tests/corpus/beta
-```
-
-### List files and computed probabilities
-
-```bash
-cargo run --bin rustune -- -f tests/corpus
-```
-
-### Regex mode
-
-```bash
-cargo run --bin rustune -- -m Rust tests/corpus/alpha
-```
-
-## Deterministic RNG (parity/test)
-
-The port supports the upstream-style deterministic hook:
-
-```bash
-FORTUNE_MOD_RAND_HARD_CODED_VALS=0 cargo run --bin rustune -- tests/corpus/alpha
-```
-
-`FORTUNE_MOD_USE_SRAND=1` is also supported to force seeded RNG behavior.
-
-## Parity Harness
-
-Run oracle comparisons (requires a system `fortune`, default `/usr/bin/fortune`):
-
-```bash
-cargo run --bin fortune-parity -- \
-  --subject target/debug/rustune \
-  --strfile target/debug/strfile \
-  --json-out tmp/parity-report.json
-```
-
-The harness reports:
-
-- pass/fail counts
-- weighted parity percentage
-- per-category scoring
-- top regression diffs
-
-Current local baseline (February 15, 2026): `7/7` cases passed, weighted parity `100.00%`.
-
-## Test Suite
-
-```bash
 cargo test
+cargo run -- --help
+cargo run --bin strfile -- --help
 ```
 
-Includes:
+## Notes, Limitations, Or Known Gaps
 
-- unit tests for `.dat` parsing/encoding and source parsing
-- integration tests for `strfile` round-trip behavior
-- property tests (`proptest`) for random corpus generation and `.dat` stability
+- Behavior parity is important here, especially around file formats and selection semantics.
+- The multiple binaries are part of the product surface, not just developer utilities.
 
-## Current Scope
+## Next Steps Or Roadmap Hints
 
-Implemented:
-
-- core `fortune` flags: `-a -o -e -f -l -s -n -m -i -w -c -u -v`
-- percent-prefixed sources (`10%foo`, `10% foo`)
-- `.dat` parser/writer in network byte order
-- directory/file source discovery with default path + LANG-aware candidate probing
-
-Still evolving toward full upstream parity:
-
-- exact output formatting parity for every mode
-- full locale recoding parity details
-- deeper compatibility for all upstream corner cases
+- Keep compatibility fixtures broad as edge cases in fortune files are discovered.
+- Document intentional differences from upstream only after they are stable and tested.
